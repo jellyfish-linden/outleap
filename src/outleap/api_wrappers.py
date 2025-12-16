@@ -24,6 +24,7 @@ class LEAPAPIWrapper(abc.ABC):
 
 class LEAPAPIError(Exception):
     """Error reported from API."""
+
     response_data: Dict
 
     def __init__(self, error_message: str, response_data: Dict):
@@ -37,7 +38,7 @@ async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     # but that means that we have to return a `Coroutine` that will pull the value out of the dict
     # rather than directly returning the `Future`.
     response = await data_fut
-    if err_msg := response.get('error'):
+    if err_msg := response.get("error"):
         raise LEAPAPIError(err_msg, response)
     return response[inner_elem]
 
