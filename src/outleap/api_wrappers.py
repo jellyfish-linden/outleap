@@ -22,13 +22,13 @@ class LEAPAPIWrapper(abc.ABC):
         assert self._pump_name
 
 
-class APIError(Exception):
+class LEAPAPIError(Exception):
     """Error reported from API."""
     response_data: Dict
 
-    def __init__(self, response_data):
+    def __init__(self, error_message: str, response_data: Dict):
+        super().__init__(error_message)
         self.response_data = response_data
-        super().__init__(self.response_data['error'])
 
 
 async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
@@ -38,7 +38,7 @@ async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     # rather than directly returning the `Future`.
     response = await data_fut
     if 'error' in response and response['error']:
-        raise APIError(response)
+        raise LEAPAPIError(response['error'], response)
     return response[inner_elem]
 
 
