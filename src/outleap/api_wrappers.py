@@ -22,12 +22,25 @@ class LEAPAPIWrapper(abc.ABC):
         assert self._pump_name
 
 
+class APIError(Exception):
+    """Error reported from API."""
+    response_data: Dict
+
+    def __init__(self, response_data):
+        self.response_data = response_data
+        super().__init__(self.response_data['error'])
+
+
+
 async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     """Unwraps part of the data future while allowing the request itself to remain synchronous"""
     # We want the request to be sent immediately, without requiring the request to be `await`ed first,
     # but that means that we have to return a `Coroutine` that will pull the value out of the dict
     # rather than directly returning the `Future`.
-    return (await data_fut)[inner_elem]
+    response = await data_fut
+    if 'error' in response:
+        raise APIError(response)
+    return response[inner_elem]
 
 
 class CommandAPI(LEAPAPIWrapper):
