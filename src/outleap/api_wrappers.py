@@ -31,7 +31,6 @@ class APIError(Exception):
         super().__init__(self.response_data['error'])
 
 
-
 async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     """Unwraps part of the data future while allowing the request itself to remain synchronous"""
     # We want the request to be sent immediately, without requiring the request to be `await`ed first,
