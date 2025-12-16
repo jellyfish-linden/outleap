@@ -37,8 +37,8 @@ async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     # but that means that we have to return a `Coroutine` that will pull the value out of the dict
     # rather than directly returning the `Future`.
     response = await data_fut
-    if 'error' in response and response['error']:
-        raise LEAPAPIError(response['error'], response)
+    if err_msg := response.get('error'):
+        raise LEAPAPIError(err_msg, response)
     return response[inner_elem]
 
 
