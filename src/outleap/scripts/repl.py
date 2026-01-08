@@ -5,6 +5,7 @@ Interactive REPL that handles connect-back connections from outleap-agent
 import asyncio
 import logging
 import multiprocessing
+import platform
 import pprint
 import sys
 import uuid
@@ -16,6 +17,20 @@ except ImportError:
     raise
 
 import outleap
+
+
+def _patch_loop_factory_for_ptpython() -> None:
+    # This patch can be removed when https://github.com/prompt-toolkit/ptpython/issues/582 is fixed
+    from asyncio import get_event_loop_policy
+
+    policy = get_event_loop_policy()
+    if loop_factory := getattr(policy, "_loop_factory", None):
+        for attr in ("add_signal_handler", "remove_signal_handler"):
+            setattr(loop_factory, attr, lambda *args, **kwargs: None)
+
+
+if platform.system() == "Windows":
+    _patch_loop_factory_for_ptpython()
 
 
 class REPLServer:
