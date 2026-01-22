@@ -6,27 +6,27 @@ from . import BaseClientTest
 
 
 class TestWrappers(BaseClientTest):
+    async def _fake_acks(self, start: int, end: int):
+        for i in range(start, end):
+            await asyncio.sleep(0.05)
+            self.protocol.inbound_messages.put_nowait(
+                {
+                    "pump": "reply_pump",
+                    "data": {
+                        "handled": True,
+                        "reqid": i,
+                    },
+                }
+            )
+
     async def test_mouse_click(self):
         self._write_welcome()
         await self.client.connect()
         llwindow_api = outleap.LLWindowAPI(self.client)
 
-        async def _fake_acks():
-            for i in range(1, 3):
-                await asyncio.sleep(0.05)
-                self.protocol.inbound_messages.put_nowait(
-                    {
-                        "pump": "reply_pump",
-                        "data": {
-                            "handled": True,
-                            "reqid": i,
-                        },
-                    }
-                )
-
         # Make sure the request looks like what we'd expect
         fut = llwindow_api.mouse_click(x=0, y=1, mask=["CTL"], button="LEFT")
-        await asyncio.gather(fut, _fake_acks())
+        await asyncio.gather(fut, self._fake_acks(1, 3))
         self.assertDictEqual(
             {
                 "pump": "LLWindow",
@@ -50,9 +50,14 @@ class TestWrappers(BaseClientTest):
         llwindow_api = outleap.LLWindowAPI(self.client)
 
         # Make sure the request looks like what we'd expect
-        llwindow_api.key_press(char="f", mask=["CTL"])
+        fut = llwindow_api.key_press(char="f", mask=["CTL"])
+        await asyncio.gather(fut, self._fake_acks(1, 3))
+
         self.assertDictEqual(
-            {"pump": "LLWindow", "data": {"char": "f", "mask": ["CTL"], "op": "keyUp"}},
+            {
+                "pump": "LLWindow",
+                "data": {"char": "f", "mask": ["CTL"], "op": "keyUp", "reply": "reply_pump", "reqid": 2},
+            },
             self.protocol.sent_messages[-1],
         )
         self.assertEqual(2, len(self.protocol.sent_messages[-1]))
@@ -62,7 +67,9 @@ class TestWrappers(BaseClientTest):
         await self.client.connect()
 
         llwindow_api = outleap.LLWindowAPI(self.client)
-        llwindow_api.key_down(char="f", path=outleap.UIPath.for_floater("foo") / "bar_elem")
+        fut = llwindow_api.key_down(char="f", path=outleap.UIPath.for_floater("foo") / "bar_elem")
+        await asyncio.gather(fut, self._fake_acks(1, 2))
+
         self.assertDictEqual(
             {
                 "pump": "LLWindow",
@@ -70,6 +77,8 @@ class TestWrappers(BaseClientTest):
                     "char": "f",
                     "path": "/main_view/menu_stack/world_panel/Floater View/foo/bar_elem",
                     "op": "keyDown",
+                    "reply": "reply_pump",
+                    "reqid": 1,
                 },
             },
             self.protocol.sent_messages[-1],

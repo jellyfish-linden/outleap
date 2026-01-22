@@ -87,11 +87,11 @@ async def client_connected(client: LEAPClient):
     # Clear out the textbox, note that this does _not_ work when path is specified!
     # TODO: clearing a textbox isn't so nice. CTL+A doesn't work as expected even without a path,
     #  it leaves a capital "A" in the text editor. We get rid of it by doing backspace right after.
-    window_api.key_press(mask=["CTL"], keysym="a")
-    window_api.key_press(keysym="Backsp")
+    await window_api.key_press(mask=["CTL"], keysym="a")
+    await window_api.key_press(keysym="Backsp")
 
     # Type some text
-    window_api.text_input("Also I can type in here pretty good.")
+    await window_api.text_input("Also I can type in here pretty good.")
 
     # Print out the value of the textbox we just typed in
     ui_api = LLUIAPI(client)
@@ -100,7 +100,7 @@ async def client_connected(client: LEAPClient):
     # But you don't need to explicitly give input focus like above, you can send keypresses
     # directly to a path.
     monospace_path = UIPath.for_floater("floater_test_textbox") / "monospace_text_editor"
-    window_api.text_input("I typed in here by path.", path=monospace_path)
+    await window_api.text_input("I typed in here by path.", path=monospace_path)
 
     # We can also access the viewer config to reason about viewer state.
     viewer_control_api = LLViewerControlAPI(client)

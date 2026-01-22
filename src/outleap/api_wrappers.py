@@ -135,10 +135,10 @@ class LLWindowAPI(LEAPAPIWrapper):
         keysym: KEYSYM_TYPE = None,
         char: CHAR_TYPE = None,
         path: UI_PATH_TYPE = None,
-    ) -> None:
+    ) -> Optional[asyncio.Future]:
         """Simulate a key being pressed down"""
         payload = self._convert_key_payload(keysym=keysym, keycode=keycode, char=char, mask=mask, path=path)
-        self._client.void_command(self._pump_name, "keyDown", payload)
+        return self._client.command(self._pump_name, "keyDown", payload)
 
     def key_up(
         self,
@@ -149,12 +149,12 @@ class LLWindowAPI(LEAPAPIWrapper):
         keysym: KEYSYM_TYPE = None,
         char: CHAR_TYPE = None,
         path: UI_PATH_TYPE = None,
-    ) -> None:
+    ) -> Optional[asyncio.Future]:
         """Simulate a key being released"""
         payload = self._convert_key_payload(keysym=keysym, keycode=keycode, char=char, mask=mask, path=path)
-        self._client.void_command(self._pump_name, "keyUp", payload)
+        return self._client.command(self._pump_name, "keyUp", payload)
 
-    def key_press(
+    async def key_press(
         self,
         /,
         *,
@@ -165,15 +165,15 @@ class LLWindowAPI(LEAPAPIWrapper):
         path: UI_PATH_TYPE = None,
     ) -> None:
         """Simulate a key being pressed down and immediately released"""
-        self.key_down(mask=mask, keycode=keycode, keysym=keysym, char=char, path=path)
-        self.key_up(mask=mask, keycode=keycode, keysym=keysym, char=char, path=path)
+        await self.key_down(mask=mask, keycode=keycode, keysym=keysym, char=char, path=path)
+        await self.key_up(mask=mask, keycode=keycode, keysym=keysym, char=char, path=path)
 
-    def text_input(self, text_input: str, path: UI_PATH_TYPE = None) -> None:
+    async def text_input(self, text_input: str, path: UI_PATH_TYPE = None) -> None:
         """Simulate a user typing a string of text"""
         # TODO: Uhhhhh I can't see how the key* APIs could possibly handle i18n correctly,
         #  what with all the U8s. Maybe I'm just dumb?
         for char in text_input:
-            self.key_press(char=char, path=path)
+            await self.key_press(char=char, path=path)
 
     async def get_paths(self, under: Optional[UI_PATH_TYPE] = None) -> List[UIPath]:
         """Get all UI paths under the root, or under a path if specified"""
