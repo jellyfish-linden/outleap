@@ -1,4 +1,5 @@
 import asyncio
+import importlib.resources
 import io
 import os
 import stat
@@ -168,6 +169,11 @@ async def connect_stdin_stdout() -> Tuple[asyncio.StreamReader, asyncio.StreamWr
     return reader, writer
 
 
+def get_resource_filename(resource_filename: str) -> str:
+    return str(importlib.resources.files("outleap").joinpath(resource_filename))
+
+
 __all__ = [
     "connect_stdin_stdout",
+    "get_resource_filename",
 ]

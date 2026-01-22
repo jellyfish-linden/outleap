@@ -9,19 +9,15 @@ import tempfile
 import weakref
 from typing import *
 
-import pkg_resources
 from PySide6 import QtCore, QtGui, QtWidgets
 from qasync import QEventLoop, asyncSlot
 
 import outleap
 from outleap import LEAPClient, UIElement, UIPath
 from outleap.qt_helpers import GUIInteractionManager, loadUi
+from outleap.utils import get_resource_filename
 
 LOG = logging.getLogger(__name__)
-
-
-def get_resource_filename(resource_filename: str):
-    return pkg_resources.resource_filename("outleap", resource_filename)
 
 
 class ElemTreeHeader(enum.IntEnum):
