@@ -461,7 +461,7 @@ class LLAgentAPI(LEAPAPIWrapper):
 
     def get_id(self) -> Awaitable[uuid.UUID]:
         """Get the current agent's ID"""
-        return _data_unwrapper(self._client.command(self._pump_name, "getId", {}), "id")
+        return _data_unwrapper(self._client.command(self._pump_name, "getID", {}), "id")
 
     def get_groups(self) -> Awaitable[List[Dict]]:
         return _data_unwrapper(self._client.command(self._pump_name, "getGroups", {}), "groups")
