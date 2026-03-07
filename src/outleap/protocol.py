@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import logging
 from typing import *
 
 import llsd
@@ -90,7 +91,10 @@ class LEAPProtocol(AbstractLEAPProtocol):
 
     async def _drain_soon(self) -> None:
         self._drain_task = None
-        await self._writer.drain()
+        try:
+            await self._writer.drain()
+        except ConnectionResetError:
+            logging.info("Connection reset while draining")
 
     async def read_message(self) -> Dict:
         assert not self._reader.at_eof()
