@@ -5,6 +5,8 @@ from typing import *
 
 import llsd
 
+LOG = logging.getLogger(__name__)
+
 
 class AbstractLEAPProtocol(abc.ABC):
     """Interface for a class representing communication with a LEAP peer"""
@@ -94,7 +96,7 @@ class LEAPProtocol(AbstractLEAPProtocol):
         try:
             await self._writer.drain()
         except ConnectionResetError:
-            logging.info("Connection reset while draining")
+            LOG.info("Connection reset while draining")
 
     async def read_message(self) -> Dict:
         assert not self._reader.at_eof()
