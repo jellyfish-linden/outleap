@@ -39,6 +39,7 @@ async def _response_handler(data_fut: Awaitable[Dict]) -> Dict:
         raise LEAPAPIError(err_msg, response)
     return response
 
+
 async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     """Unwraps part of the data future while allowing the request itself to remain synchronous"""
     # We want the request to be sent immediately, without requiring the request to be `await`ed first,
@@ -763,22 +764,16 @@ class LLInventoryAPI(LEAPAPIWrapper):
 
     def get_items_info(self, item_ids: Sequence[uuid.UUID]) -> Awaitable[Dict[str, Dict[str, Dict]]]:
         """Look up info about inventory items and/or folders by UUID."""
-        fut = self._client.command(
-            self._pump_name, "getItemsInfo", {"item_ids": list(item_ids)}
-        )
+        fut = self._client.command(self._pump_name, "getItemsInfo", {"item_ids": list(item_ids)})
         return _response_handler(fut)
 
     def get_folder_type_names(self) -> Awaitable[List[str]]:
         """Get the list of folder type names usable with `get_basic_folder_id`."""
-        return _data_unwrapper(
-            self._client.command(self._pump_name, "getFolderTypeNames", {}), "names"
-        )
+        return _data_unwrapper(self._client.command(self._pump_name, "getFolderTypeNames", {}), "names")
 
     def get_asset_type_names(self) -> Awaitable[List[str]]:
         """Get the list of asset type names usable as the `asset_type` filter."""
-        return _data_unwrapper(
-            self._client.command(self._pump_name, "getAssetTypeNames", {}), "names"
-        )
+        return _data_unwrapper(self._client.command(self._pump_name, "getAssetTypeNames", {}), "names")
 
     def get_basic_folder_id(self, folder_type_name: str) -> Awaitable[uuid.UUID]:
         """Get the UUID of a basic folder by its type name (e.g. "Textures", "My outfits")."""
@@ -787,13 +782,9 @@ class LLInventoryAPI(LEAPAPIWrapper):
             "id",
         )
 
-    def get_direct_descendants(
-        self, folder_id: uuid.UUID
-    ) -> Awaitable[Dict[str, Dict[str, Dict]]]:
+    def get_direct_descendants(self, folder_id: uuid.UUID) -> Awaitable[Dict[str, Dict[str, Dict]]]:
         """Get the direct descendants of a folder."""
-        fut = self._client.command(
-            self._pump_name, "getDirectDescendants", {"folder_id": folder_id}
-        )
+        fut = self._client.command(self._pump_name, "getDirectDescendants", {"folder_id": folder_id})
         return _response_handler(fut)
 
     def collect_descendants_if(
