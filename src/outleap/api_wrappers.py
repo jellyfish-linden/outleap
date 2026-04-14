@@ -32,14 +32,19 @@ class LEAPAPIError(Exception):
         self.response_data = response_data
 
 
+async def _response_handler(data_fut: Awaitable[Dict]) -> Dict:
+    """Checks if there's an error and throws it if so."""
+    response = await data_fut
+    if err_msg := response.get("error"):
+        raise LEAPAPIError(err_msg, response)
+    return response
+
 async def _data_unwrapper(data_fut: Awaitable[Dict], inner_elem: str) -> Any:
     """Unwraps part of the data future while allowing the request itself to remain synchronous"""
     # We want the request to be sent immediately, without requiring the request to be `await`ed first,
     # but that means that we have to return a `Coroutine` that will pull the value out of the dict
     # rather than directly returning the `Future`.
-    response = await data_fut
-    if err_msg := response.get("error"):
-        raise LEAPAPIError(err_msg, response)
+    response = await _response_handler(data_fut)
     return response[inner_elem]
 
 
@@ -747,6 +752,85 @@ class LLAppearanceAPI(LEAPAPIWrapper):
         )
 
 
+class LLInventoryAPI(LEAPAPIWrapper):
+    PUMP_NAME = "LLInventory"
+
+    FILTER_LINKS_TYPE = Literal[
+        "INCLUDE_LINKS",
+        "EXCLUDE_LINKS",
+        "ONLY_LINKS",
+    ]
+
+    def get_items_info(self, item_ids: Sequence[uuid.UUID]) -> Awaitable[Dict[str, Dict[str, Dict]]]:
+        """Look up info about inventory items and/or folders by UUID."""
+        fut = self._client.command(
+            self._pump_name, "getItemsInfo", {"item_ids": list(item_ids)}
+        )
+        return _response_handler(fut)
+
+    def get_folder_type_names(self) -> Awaitable[List[str]]:
+        """Get the list of folder type names usable with `get_basic_folder_id`."""
+        return _data_unwrapper(
+            self._client.command(self._pump_name, "getFolderTypeNames", {}), "names"
+        )
+
+    def get_asset_type_names(self) -> Awaitable[List[str]]:
+        """Get the list of asset type names usable as the `asset_type` filter."""
+        return _data_unwrapper(
+            self._client.command(self._pump_name, "getAssetTypeNames", {}), "names"
+        )
+
+    def get_basic_folder_id(self, folder_type_name: str) -> Awaitable[uuid.UUID]:
+        """Get the UUID of a basic folder by its type name (e.g. "Textures", "My outfits")."""
+        return _data_unwrapper(
+            self._client.command(self._pump_name, "getBasicFolderID", {"ft_name": folder_type_name}),
+            "id",
+        )
+
+    def get_direct_descendants(
+        self, folder_id: uuid.UUID
+    ) -> Awaitable[Dict[str, Dict[str, Dict]]]:
+        """Get the direct descendants of a folder."""
+        fut = self._client.command(
+            self._pump_name, "getDirectDescendants", {"folder_id": folder_id}
+        )
+        return _response_handler(fut)
+
+    def collect_descendants_if(
+        self,
+        folder_id: uuid.UUID,
+        /,
+        *,
+        name: Optional[str] = None,
+        desc: Optional[str] = None,
+        asset_type: Optional[str] = None,
+        limit: Optional[int] = None,
+        filter_links: Optional[FILTER_LINKS_TYPE] = None,
+    ) -> Awaitable[Dict[str, Dict[str, Dict]]]:
+        """
+        Recursively collect descendants of `folder_id` matching the given filters.
+
+        - `name`: substring match against object name.
+        - `desc`: substring match against item description (excludes categories when set).
+        - `asset_type`: asset type name (see `get_asset_type_names`).
+        - `limit`: max items returned (default unlimited).
+        - `filter_links`: one of "INCLUDE_LINKS" (default), "EXCLUDE_LINKS", "ONLY_LINKS".
+        """
+        payload: Dict = {"folder_id": folder_id}
+        if name is not None:
+            payload["name"] = name
+        if desc is not None:
+            payload["desc"] = desc
+        if asset_type is not None:
+            payload["type"] = asset_type
+        if limit is not None:
+            payload["limit"] = limit
+        if filter_links is not None:
+            payload["filter_links"] = filter_links
+        fut = self._client.command(self._pump_name, "collectDescendantsIf", payload)
+        return _response_handler(fut)
+
+
 __all__ = [
     "CommandAPI",
     "LLUIAPI",
@@ -764,5 +848,6 @@ __all__ = [
     "LLAppViewerAPI",
     "LLTeleportHandlerAPI",
     "LLAppearanceAPI",
+    "LLInventoryAPI",
     "LEAPAPIWrapper",
 ]
